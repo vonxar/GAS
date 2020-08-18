@@ -1,0 +1,73 @@
+var CHANNEL_ACCESS_TOKEN = 'Lc367d0+77yT3Pqxb4ch0n6rUNeyBNgRMXS7dqile/8ouj0c7MHjfxE0YJuhkcCIYOb1XXqTnwCuk2XEFkdZ5fHpLMFsSgVyEL2gt8IkA+aGCYq2p3tA8PrGHNTtHp+1qtHLsiHjQKUr3dVb8oqj2gdB04t89/1O/w1cDnyilFU=';
+
+function doPost(e) {
+  var reply_token= JSON.parse(e.postData.contents).events[0].replyToken;
+  if (typeof reply_token === 'undefined') {
+    return;
+  }
+  var user_message = JSON.parse(e.postData.contents).events[0].message.text;
+  
+  var url = 'https://api.line.me/v2/bot/message/reply';
+  UrlFetchApp.fetch(url, {
+    'headers': {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Authorization': 'Bearer ' + CHANNEL_ACCESS_TOKEN,
+    },
+    'method': 'post',
+    'payload': JSON.stringify({
+      'replyToken': reply_token,
+      'messages': [{
+        'type': 'text',
+        'text': user_message,
+      }],
+    }),
+  });
+  return ContentService.createTextOutput(JSON.stringify({'content': 'post ok'})).setMimeType(ContentService.MimeType.JSON);
+}
+
+// 材料検索処理
+function search(){
+    var response = UrlFetchApp.fetch('https://cookpad.com');
+  var title_list = [];
+  var url_list = [];
+  var img_url_list = [];
+  var description_list = [];
+  //urlとタイトルが入ってるDOMを取得
+  //var myRegexp = /<div class=([\s\S]*?)<\/div>/;
+  var url_and_title = response.getContentText();
+  var searchResult = Parser.data(url_and_title).from('pickup_image').to('</a>').build();
+  url_and_title = url_and_title;
+  
+   console.log(searchResult);
+  //url取得
+    var url = Parser.data(searchResult).from('a href="').to('">').build();
+  console.log("url"+url);
+    url = 'https://cookpad.com' + url;
+    url_list.push(url);
+    //タイトル取得
+    //myRegexp = /alt=\"([\s\S]*?)\"/g;
+    var title = Parser.data(searchResult).from('img alt="').to('"').build();
+    title_list.push(title);
+
+    //アクセス制限不要処理
+    var response2 = UrlFetchApp.fetch(url);
+    var searchResult2 = response2.getContentText();
+    var searchResult2 = Parser.data(searchResult2).from('class="photo large_photo_clickable"').to('</div>').build();
+    var img_url =  Parser.data(searchResult2).from('src="').to('"').build();
+  console.log("img_url"+img_url);
+    img_url_list.push(img_url[0]);
+    //投稿者名
+    
+    var description = response2.getContentText();
+    var make_user = Parser.data(description).from('recipe_author_info_wrapper').to('author_icon').build();
+    var make_user = Parser.data(make_user).from('alt="').to('"').build();
+  console.log("user"+" "+make_user);
+    description_list.push("by " + description);
+  //情報を返す
+  var mes = [];
+  mes[0] = title_list;
+  mes[1] = url_list;
+  mes[2] = img_url_list;
+  mes[3] = description_list;
+  return mes;  
+}
