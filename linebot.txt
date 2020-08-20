@@ -1,4 +1,4 @@
-var CHANNEL_ACCESS_TOKEN = 'Lc367d0+77yT3Pqxb4ch0n6rUNeyBNgRMXS7dqile/8ouj0c7MHjfxE0YJuhkcCIYOb1XXqTnwCuk2XEFkdZ5fHpLMFsSgVyEL2gt8IkA+aGCYq2p3tA8PrGHNTtHp+1qtHLsiHjQKUr3dVb8oqj2gdB04t89/1O/w1cDnyilFU=';
+var CHANNEL_ACCESS_TOKEN = 
 
 function doPost(e) {
   var reply_token= JSON.parse(e.postData.contents).events[0].replyToken;

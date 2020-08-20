@@ -1,7 +1,7 @@
 // LINEのアクセストークン
-var CHANNEL_ACCESS_TOKEN = 'anRxpM1GHErIrFG5IbLe5elSY4i+WT1Q5bMhc3lwGC+gYufncRsrbwRf3qBQmVSCoirl+a5dGZR/a7h6Evi9YkuNBIgOBCxRzlEOXPapwRSE+h/Ib8qqo2XemMsIhz3zXgRrmnNwJZIrBb74SIqd5wdB04t89/1O/w1cDnyilFU=';
+var CHANNEL_ACCESS_TOKEN = ;
 // Google Cloud Vision API Key
-var GOOGLE_CLOUD_VISION_API_KEY = 'AIzaSyC19GyUbagAevIAUP66oSRt95kiI6rzl6o';
+var GOOGLE_CLOUD_VISION_API_KEY = '';
 
 //LINEからメッセージが送られたときに動作する処理
 function doPost(e) {
