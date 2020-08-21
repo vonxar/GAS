@@ -1,0 +1,237 @@
+var CHANNEL_ACCESS_TOKEN = [token];
+var USER_ID = [my_id];
+
+
+
+
+
+function doPost(e) {
+ var reply_token= JSON.parse(e.postData.contents).events[0].replyToken;
+  //メッセージを取得
+  var user_message = JSON.parse(e.postData.contents).events[0].message.text;
+  if (typeof reply_token === 'undefined') {
+    return;
+  }
+  var mes = search2(user_message);
+  if (mes == "null") {//検索結果がなけれな、終了
+    return;
+  }
+  var line_json = [];
+  for (i = 0; i < mes[0].length; i++){
+     var a = mes[2][i].length;
+     var a = mes[2][i].substr( 0, a-1 );
+    //メニュー作成処理
+    var fuck = (
+      {
+        "thumbnailImageUrl": a,
+        "title": mes[0][i],
+        "text": mes[3][i],
+        "actions": [
+          {
+            "type": "uri",
+            "label": "詳細はここ",
+            "uri": mes[1][i]
+          }
+        ]
+      }
+    );
+    line_json.push(fuck);
+    console.log(mes[1][i]+"-------"+mes[0][i]+"--------"+mes[2][i]+"---------"+mes[3][i]);
+  }
+  var url = 'https://api.line.me/v2/bot/message/reply';//リプライのurl
+  UrlFetchApp.fetch(url, {
+    'headers': {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Authorization': 'Bearer ' + CHANNEL_ACCESS_TOKEN,
+    },
+    'method': 'post',
+    'payload': JSON.stringify({
+      'replyToken': reply_token,
+      'messages': [{       
+        "type": "template",
+        "altText": "this is a carousel template",
+        "template": {
+          "type": "carousel",
+          "columns": line_json
+        }
+      }],
+    }),
+  });
+  return ContentService.createTextOutput(JSON.stringify({'content': 'post ok'})).setMimeType(ContentService.MimeType.JSON);
+}
+// 材料検索処理
+function search2(mes){
+  //エラー処理
+  try{
+    var response = UrlFetchApp.fetch("https://cookpad.com/search/" + mes); //クックパッドurl
+  }
+  catch(e){
+    return "null";
+  }
+  var title_list = [];
+  var url_list = [];
+  var img_url_list = [];
+  var description_list = [];
+
+  //urlとタイトルが入ってるDOMを取得
+  var myRegexp = /<a class=\"recipe-title font13([\s\S]*?)<\/a>/gi;
+  
+  var url_and_title = response.getContentText().match(myRegexp);
+  if (url_and_title != null) { //検索結果があれば
+    number = url_and_title.length; //検索結果数を取得
+    if (number >=5) number = 5; //検索結果は上から5個までに   
+  }
+  else{//なかったら
+    return "null";
+  }
+  for (i = 0; i < number; i++){ //最大5個までurl,title,img_urlを取得
+  //url取得
+    myRegexp = /href=\"([\s\S]*?)\"/g;
+    var url = url_and_title[i].match(myRegexp);
+    url = url[0].substr(5);
+    url = url.replace(/\"/g,"");
+    url = 'https://cookpad.com' + url;
+    //Logger.log(url);
+    url_list.push(url);
+    //タイトル取得
+    myRegexp = /\">([\s\S]*?)<\/a>/g;
+    var title = url_and_title[i].match(myRegexp);
+    title = title[0];
+    title = title.substr(2);
+    title = title.substr( 0, title.length-4 );
+    //Logger.log(title);
+    title_list.push(title);
+    //imgのurlを取得する正規表現
+    //アクセス制限処理
+    //var myRegexp2 = /https:\/\/img.cpcdn.com\/recipes\/(\d+)\/100x141c\/([\s\S]*?).jpg/gi;
+    //var img_url = response.getContentText().match(myRegexp2);
+    //Logger.log(img_url[i]);
+    //アクセス制限不要処理
+    var response2 = UrlFetchApp.fetch(url);
+    var myRegexp2 = /https:\/\/img.cpcdn.com\/recipes\/(\d+)\/m\/([\s\S]*?)"/gi;
+    var img_url = response2.getContentText().match(myRegexp2);
+     console.log(img_url+"---------------------------------------------------");
+    img_url_list.push(img_url[0]);
+    //投稿者名
+    var myRegexp3 = /recipe_author_name([\s\S]*?)<\/a>/gi;
+    var description = response2.getContentText().match(myRegexp3);
+    var myRegexp4 = />([\s\S]*?)</gi;
+    description = description[0].match(myRegexp4);
+    description = description[0];
+    description = description.substr( 1, description.length - 2 );
+    description_list.push("by " + description);
+  }
+  //情報を返す
+  var mes = [];
+  mes[0] = title_list;
+  mes[1] = url_list;
+  mes[2] = img_url_list;
+  mes[3] = description_list;
+  return mes;  
+}
+
+
+
+
+
+
+
+
+function doGet(e) {
+  var mes = search();
+  today();
+  
+var url = 'https://api.line.me/v2/bot/message/push';
+  UrlFetchApp.fetch(url, {
+    'headers': {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Authorization': 'Bearer ' + CHANNEL_ACCESS_TOKEN,
+    },
+   'method': 'post',
+'payload': JSON.stringify({
+'to': USER_ID,
+'messages': [{
+"type": "template",
+  "altText": "this is a buttons template",
+  "template":{
+    "type": "buttons",
+    "thumbnailImageUrl": mes[2],
+"title": mes[0],
+"text": mes[3],
+"actions": [
+{
+"type": "uri",
+"label": "詳しいレシピはこちら",
+"uri": mes[1]
+}]
+  }
+}],
+}),
+});
+return ContentService.createTextOutput(JSON.stringify({'content': 'post ok'})).setMimeType(ContentService.MimeType.JSON);
+}
+
+// 材料検索処理
+function search(){
+    var response = UrlFetchApp.fetch('https://cookpad.com');
+  var title_list = [];
+  var url_list = [];
+  var img_url_list = [];
+  var description_list = [];
+  //urlとタイトルが入ってるDOMを取得
+  //var myRegexp = /<div class=([\s\S]*?)<\/div>/;
+  var url_and_title = response.getContentText();
+  var searchResult = Parser.data(url_and_title).from('pickup_image').to('</a>').build();
+  url_and_title = url_and_title;
+  
+   console.log(searchResult);
+  //url取得
+    var url = Parser.data(searchResult).from('a href="').to('">').build();
+    url = 'https://cookpad.com' + url;
+    url_list.push(url);
+    //タイトル取得
+    //myRegexp = /alt=\"([\s\S]*?)\"/g;
+    var title = Parser.data(searchResult).from('img alt="').to('"').build();
+    title_list.push(title);
+
+    //アクセス制限不要処理
+    var response2 = UrlFetchApp.fetch(url);
+    var searchResult2 = response2.getContentText();
+    var searchResult2 = Parser.data(searchResult2).from('class="photo large_photo_clickable"').to('</div>').build();
+    var img_url =  Parser.data(searchResult2).from('src="').to('"').build();
+  console.log("img_url"+img_url);
+    img_url_list.push(img_url);
+    //投稿者名
+    
+    var description = response2.getContentText();
+    var make_user = Parser.data(description).from('recipe_author_info_wrapper').to('author_icon').build();
+    var make_user = Parser.data(make_user).from('alt="').to('"').build();
+  console.log("user"+" "+make_user);
+    description_list.push("by " + make_user);
+  //情報を返す
+  var mes = [];
+  mes[0] = title_list.toString();
+  mes[1] = url_list.toString();
+  mes[2] = img_url_list.toString();
+  mes[3] = description_list.toString();
+  return mes;  
+}
+
+function today() {
+  var url = 'https://api.line.me/v2/bot/message/push';
+  UrlFetchApp.fetch(url, {
+    'headers': {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Authorization': 'Bearer ' + CHANNEL_ACCESS_TOKEN,
+    },
+    'method': 'post',
+    'payload': JSON.stringify({
+     'to': USER_ID,
+      'messages': [{
+        'type': 'text',
+        'text': "本日のおすすめレシピ",
+      }],
+    }),
+  });
+  return ContentService.createTextOutput(JSON.stringify({'content': 'post ok'})).setMimeType(ContentService.MimeType.JSON);
+}
